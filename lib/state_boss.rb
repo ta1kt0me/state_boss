@@ -31,12 +31,6 @@ module StateBoss
     next_states.nil?
   end
 
-  def movable_state?(state)
-    return false if finished_state?
-
-    next_states.include?(state)
-  end
-
   private
 
   attr_reader :_state

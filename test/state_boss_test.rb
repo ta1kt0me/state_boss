@@ -6,48 +6,103 @@ class StateBossTest < Minitest::Test
     refute_nil ::StateBoss::VERSION
   end
 
-  def test_use_apis_defined_state_boss
-    klass = Class.new do
+  def test_current_state
+    monster = charmander_class.new
+    assert_equal monster.current_state, :charmander
+
+    monster.evolve_first
+    assert_equal monster.current_state, :charmeleon
+
+    monster.evolve_second
+    assert_equal monster.current_state, :charizard
+  end
+
+  def test_next_states
+    monster = eevee_class.new
+    assert_equal monster.next_states, [:jolteon, :vaporeon, :flareon]
+  end
+
+  def test_finished_state?
+    monster = eevee_class.new
+    assert_nil monster.water_stone
+    assert_equal monster.finished_state?, true
+  end
+
+  def test_events
+    monster = chansey_class.new(100)
+
+    assert_equal monster.alive?, true
+    assert_equal monster.fainting?, false
+    assert_equal monster.pokemon_shock, 0
+    assert_equal monster.alive?, false
+    assert_equal monster.fainting?, true
+    assert_equal monster.pokemon_center, 100
+  end
+
+  def test_event_history
+    monster = chansey_class.new(100)
+    monster.pokemon_shock
+    monster.pokemon_center
+
+    expected = [
+      { before_state: :alive, event: :pokemon_shock },
+      { before_state: :fainting, event: :pokemon_center }
+    ]
+
+    assert monster.event_history, expected
+  end
+
+  private
+
+  def charmander_class
+    Class.new do
       include StateBoss
 
-      attr_accessor :mock
+      state_machine do
+        state :charmander, to: [:charmeleon], as: :default
+        state :charmeleon, to: [:charizard]
+        state :charizard, as: :finish
 
-      def initialize(object)
-        @mock = object
+        event :evolve_first, to: :charmeleon
+        event :evolve_second, to: :charizard
+      end
+    end
+  end
+
+  def eevee_class
+    Class.new do
+      include StateBoss
+
+      state_machine do
+        state :eevee, to: [:jolteon, :vaporeon, :flareon], as: :default
+        state :jolteon, as: :finish
+        state :vaporeon, as: :finish
+        state :flareon, as: :finish
+
+        event :water_stone, to: :vaporeon
+        event :thunder_stone, to: :jolteon
+        event :fire_stone, to: :flareon
+      end
+    end
+  end
+
+  def chansey_class
+    Class.new do
+      include StateBoss
+
+      attr_writer :life
+
+      def initialize(life)
+        @life = life
       end
 
       state_machine do
-        state :first, to: [:last], as: :default
-        state :last, as: :finish
+        state :alive, to: [:fainting], as: :default
+        state :fainting, to: [:alive]
 
-        event(:to_last, to: :last) { |obj| obj.foo }
+        event(:pokemon_shock, to: :fainting) { |object| object.life = 0 }
+        event(:pokemon_center, to: :alive) { |object| object.life = 100 }
       end
-
-      def foo; mock.call end
     end
-
-    mock = Class.new { def call; "call" end }
-
-    obj = klass.new(mock.new)
-    assert obj.first? == true
-    assert obj.last? == false
-    assert obj.current_state == :first
-    assert obj.next_states == [:last]
-    assert obj.movable_state?(:first) == false
-    assert obj.movable_state?(:last) == true
-    assert obj.finished_state? == false
-
-    assert obj.to_last == "call"
-    assert obj.first? == false
-    assert obj.last? == true
-    assert obj.current_state == :last
-    assert obj.movable_state?(:first) == false
-    assert obj.movable_state?(:last) == false
-    assert obj.finished_state? == true
-
-    expected = [
-      { before_state: :first, event: :to_last }
-    ]
-    assert obj.event_history == expected
   end
 end

@@ -16,10 +16,12 @@ class StateBossTest < Minitest::Test
         @mock = object
       end
 
-      state :first, to: [:last], as: :default
-      state :last, as: :finish
+      state_machine do
+        state :first, to: [:last], as: :default
+        state :last, as: :finish
 
-      event(:to_last, to: :last) { |obj| obj.foo }
+        event(:to_last, to: :last) { |obj| obj.foo }
+      end
 
       def foo; mock.call end
     end

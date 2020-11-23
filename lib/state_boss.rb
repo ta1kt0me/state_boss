@@ -53,6 +53,47 @@ module StateBoss
   end
 
   module ClassMethods
+    def state_machine(&block)
+      class_eval do
+        block.call
+      end
+
+      @transitions.keys.each do |key|
+        define_method("#{key}?") do
+          _state == key
+        end
+      end
+
+      @events.keys.each do |key|
+        define_method(key) do
+          raise StateInitializationError, 'state is uninitialized.' unless ready?
+          raise InvalidTransitionError, 'state transition finished.' if finished_state?
+
+          events = self.class.instance_variable_get(:@events)
+          to = events[key][:to]
+
+          transitions = self.class.instance_variable_get(:@transitions)
+          raise InvalidTransitionError unless transitions[_state][:to].include?(to)
+
+          before_state = _state
+          @_state = to
+
+          begin
+            callback = events[key][:callback]
+            result = callback.call(self) if !callback.nil?
+
+            record_event(before_state, key)
+
+            result
+          rescue => e
+            @_state = before_state
+
+            raise e
+          end
+        end
+      end
+    end
+
     def state(key, values)
       if values.key?(:as)
         if values[:as] == :default
@@ -65,42 +106,13 @@ module StateBoss
       end
 
       @transitions[key] = values
-
-      define_method("#{key}?") do
-        _state == key
-      end
     end
 
     def event(name, to:, &block)
       @events[name] = {
         to: to || [],
+        callback: block,
       }
-
-      define_method(name) do
-        raise StateInitializationError, 'state is uninitialized.' unless ready?
-        raise InvalidTransitionError, 'state transition finished.' if finished_state?
-
-        events = self.class.instance_variable_get(:@events)
-        to = events[name][:to]
-
-        transitions = self.class.instance_variable_get(:@transitions)
-        raise InvalidTransitionError unless transitions[_state][:to].include?(to)
-
-        before_state = _state
-        @_state = to
-
-        begin
-          result = block.call(self) if !block.nil?
-
-          record_event(before_state, name)
-
-          result
-        rescue => e
-          @_state = before_state
-
-          raise e
-        end
-      end
     end
   end
 end

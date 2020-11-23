@@ -42,6 +42,7 @@ module StateBoss
   module Initializer
     def initialize(*args, &block)
       super
+
       @_state = self.class.instance_variable_get(:@default_state)
     end
   end
@@ -52,6 +53,8 @@ module StateBoss
         block.call
       end
 
+      raise StateInitializationError, 'state is uninitialized.' if @default_state.nil?
+
       @transitions.keys.each do |key|
         define_method("#{key}?") do
           _state == key
@@ -60,14 +63,16 @@ module StateBoss
 
       @events.keys.each do |key|
         define_method(key) do
-          raise StateInitializationError, 'state is uninitialized.' unless ready?
           raise InvalidTransitionError, 'state transition finished.' if finished_state?
 
           events = self.class.instance_variable_get(:@events)
           to = events[key][:to]
 
           transitions = self.class.instance_variable_get(:@transitions)
-          raise InvalidTransitionError, "can't change state from #{current_state} to #{to}" unless transitions[_state][:to].include?(to)
+
+          unless transitions[_state][:to].include?(to)
+            raise InvalidTransitionError, "can't change state from #{current_state} to #{to}"
+          end
 
           before_state = _state
           @_state = to
@@ -91,7 +96,9 @@ module StateBoss
     def state(key, values)
       if values.key?(:as)
         if values[:as] == :default
-          raise InvalidTransitionError, "Already set :#{@default_state} as default state." if @default_state
+          if @default_state
+            raise InvalidTransitionError, "Already set :#{@default_state} as default state."
+          end
 
           @default_state = key
         end

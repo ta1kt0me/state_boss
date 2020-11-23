@@ -52,6 +52,88 @@ class StateBossTest < Minitest::Test
     assert monster.event_history, expected
   end
 
+  def test_state_initialization_error
+    assert_raises(StateBoss::StateInitializationError) do
+      Class.new {
+        include StateBoss
+
+        state_machine do
+          state :walking, to: :flying
+          state :flying, as: :finish
+        end
+      }
+    end
+  end
+
+  def test_mismatch_to_state
+    ketsuban = Class.new {
+      include StateBoss
+
+      state_machine do
+        state :walking, to: [:flying], as: :default
+        state :flying, to: [:surfing]
+        state :surf, to: [:walking]
+
+        event :fly, to: :surfing
+      end
+    }.new
+
+    assert_raises(StateBoss::InvalidTransitionError) do
+      ketsuban.fly
+    end
+  end
+
+  def test_default_state_twice
+    assert_raises(StateBoss::InvalidTransitionError) do
+      Class.new {
+        include StateBoss
+
+        state_machine do
+          state :walking, as: :default
+          state :flying, as: :default
+        end
+      }
+    end
+  end
+
+  def test_change_finieshed_state
+    ketsuban = Class.new {
+      include StateBoss
+
+      state_machine do
+        state :walking, to: [:flying], as: :default
+        state :flying, as: :finish
+
+        event(:fly, to: :flying)
+      end
+    }.new
+
+    ketsuban.fly
+
+    assert_raises(StateBoss::InvalidTransitionError) do
+      ketsuban.fly
+    end
+  end
+
+  def test_rollback_state_in_error
+    ketsuban = Class.new {
+      include StateBoss
+
+      state_machine do
+        state :walking, to: [:flying], as: :default
+        state :flying, as: :finish
+
+        event(:fly, to: :flying) { raise RuntimeError }
+      end
+    }.new
+
+    assert_raises(RuntimeError) do
+      ketsuban.fly
+    end
+
+    assert_equal ketsuban.walking?, true
+  end
+
   private
 
   def charmander_class

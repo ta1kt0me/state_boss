@@ -67,7 +67,7 @@ module StateBoss
           to = events[key][:to]
 
           transitions = self.class.instance_variable_get(:@transitions)
-          raise InvalidTransitionError unless transitions[_state][:to].include?(to)
+          raise InvalidTransitionError, "can't change state from #{current_state} to #{to}" unless transitions[_state][:to].include?(to)
 
           before_state = _state
           @_state = to

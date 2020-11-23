@@ -20,8 +20,6 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
-
 ```ruby
 class Monster
   include StateBoss
@@ -48,10 +46,10 @@ end
 
 monster = Monster.new # => #<Monster:0x00007fd129052380>
 monster.current_state # => eevee
-monster.eevee? # => true
-monster.jolteon? # => false
+monster.eevee?        # => true
+monster.jolteon?      # => false
 monster.thunder_stone # => use thunder stone
-monster.jolteon? # => true
+monster.jolteon?      # => true
 ```
 
 ## Development

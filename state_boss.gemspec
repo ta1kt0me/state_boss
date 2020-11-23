@@ -6,8 +6,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["ta1kt0me"]
   spec.email         = ["p.wadachi@gmail.com"]
 
-  spec.summary       = %q{state_boss is state-machine for PORO}
-  spec.description   = %q{state_boss is state-machine for PORO}
+  spec.summary       = %q{state_boss is state machine for PORO}
+  spec.description   = %q{state_boss is state machine for PORO}
   spec.homepage      = "https://github.com/ta1kt0me/state_boss"
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.4.10")

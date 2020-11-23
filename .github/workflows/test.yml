@@ -1,0 +1,30 @@
+name: test
+
+on:
+  pull_request:
+
+  push:
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ruby:
+          - 2.4.10
+          - 2.5.8
+          - 2.6.6
+          - 2.7.2
+          - head
+    steps:
+      - uses: actions/checkout@v1
+      - name: setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: bundle install
+        run: bundle install --jobs=4 --path=vendor/bundle
+      - name: run test
+        run: bundle exec rake
+        continue-on-error: ${{ matrix.ruby == 'head' }}
+    timeout-minutes: 60

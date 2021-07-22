@@ -1,12 +1,14 @@
 name: test
 
 on:
-  pull_request:
-
   push:
-
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 jobs:
-  ubuntu:
+  build:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -16,14 +18,16 @@ jobs:
           - 2.6.6
           - 2.7.2
           - head
+    env:
+      BUNDLER_JOBS: 4
+      BUNDLER_PATH: vendor/bundle
     steps:
       - uses: actions/checkout@v1
       - name: setup ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-      - name: bundle install
-        run: bundle install --jobs=4 --path=vendor/bundle
+          bundler-cache: true
       - name: run test
         run: bundle exec rake
         continue-on-error: ${{ matrix.ruby == 'head' }}
